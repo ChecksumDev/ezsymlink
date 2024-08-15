@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/ChecksumDev/ezsymlink/compare/v0.1.1...v0.1.2) (2024-08-15)
+
+
+### Bug Fixes
+
+* ci permissions ([ed029e3](https://github.com/ChecksumDev/ezsymlink/commit/ed029e38324b79d2f18cdbac98b865c0a8bfc255))
+
 ## [0.1.1](https://github.com/ChecksumDev/ezsymlink/compare/v0.1.0...v0.1.1) (2024-08-15)
 
 
