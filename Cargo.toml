@@ -1,6 +1,6 @@
 [package]
 name = "ezsymlink"
-version = "0.0.0"
+version = "0.1.2"
 edition = "2021"
 authors = ["Elizabeth (Checksum) <me@checksum.space>"]
 description = "ezsymlink is a GUI tool for easy management of symbolic links"

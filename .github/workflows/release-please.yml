@@ -34,15 +34,19 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: ezsymlink-x86_64-linux.deb
+            artifact_name: ezsymlink-x86_64-linux
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: ezsymlink-x86_64-macos.dmg
+            artifact_name: ezsymlink-x86_64-macos
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: ezsymlink-x86_64-windows.msi
+            artifact_name: ezsymlink-x86_64-windows.exe
 
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
@@ -58,32 +62,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev
 
-      - name: Install cargo-bundle
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-bundle
-
       - name: Build release
         uses: actions-rs/cargo@v1
         with:
-          command: bundle
-          args: --release --target ${{ matrix.target }} ${{ matrix.os == 'windows-latest' && '--format msi' || '' }}
+          command: build
+          args: --release --target ${{ matrix.target }}
 
-      - name: Rename and move artifact
-        shell: bash
-        run: |
-          find ./target/${{ matrix.target }}/release/bundle -type f \( -name "*.deb" -o -name "*.dmg" -o -name "*.msi" \) -exec mv {} ./${{ matrix.artifact_name }} \;
+      - name: Rename binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: mv target/${{ matrix.target }}/release/ezsymlink ${{ matrix.artifact_name }}
+
+      - name: Rename binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: move target\${{ matrix.target }}\release\ezsymlink.exe ${{ matrix.artifact_name }}
+
+      - name: Attest
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ./${{ matrix.artifact_name }}
 
       - name: Upload release asset
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.release-please.outputs.upload_url }}
-          asset_path: ./${{ matrix.artifact_name }}
-          asset_name: ${{ matrix.artifact_name }}
-          asset_content_type: application/octet-stream
+          files: ./${{ matrix.artifact_name }}
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
 
       - name: Upload artifact for debugging
         uses: actions/upload-artifact@v3
@@ -91,15 +95,3 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: ./${{ matrix.artifact_name }}
           if-no-files-found: error
-
-  update-release:
-    needs: [release-please, build-and-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Update release body
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
-        run: |
-          gh release edit $TAG_NAME --notes "$(cat CHANGELOG.md)"

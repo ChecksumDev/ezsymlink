@@ -11,7 +11,7 @@
 
 ## Installation
 
-Get the latest release from the [releases page](/releases) for your platform and install it.
+Get the latest release from the [releases page](https://github.com/checksumdev/ezsymlink/releases) for your platform and install it.
 
 ## Star the project
 
