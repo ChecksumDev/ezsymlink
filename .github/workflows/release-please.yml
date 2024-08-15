@@ -43,6 +43,10 @@ jobs:
             artifact_name: ezsymlink-x86_64-windows.msi
 
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
@@ -74,6 +78,11 @@ jobs:
         shell: bash
         run: |
           find ./target/${{ matrix.target }}/release/bundle -type f \( -name "*.deb" -o -name "*.dmg" -o -name "*.msi" \) -exec mv {} ./${{ matrix.artifact_name }} \;
+
+      - name: Attest
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ./${{ matrix.artifact_name }}
 
       - name: Upload release asset
         uses: actions/upload-release-asset@v1
