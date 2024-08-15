@@ -1,0 +1,105 @@
+name: Release Please and Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          release-type: rust
+          package-name: ezsymlink
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+
+  build-and-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: ezsymlink-x86_64-linux.deb
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: ezsymlink-x86_64-macos.dmg
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: ezsymlink-x86_64-windows.msi
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev
+
+      - name: Install cargo-bundle
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-bundle
+
+      - name: Build release
+        uses: actions-rs/cargo@v1
+        with:
+          command: bundle
+          args: --release --target ${{ matrix.target }} ${{ matrix.os == 'windows-latest' && '--format msi' || '' }}
+
+      - name: Rename and move artifact
+        shell: bash
+        run: |
+          find ./target/${{ matrix.target }}/release/bundle -type f \( -name "*.deb" -o -name "*.dmg" -o -name "*.msi" \) -exec mv {} ./${{ matrix.artifact_name }} \;
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
+          asset_path: ./${{ matrix.artifact_name }}
+          asset_name: ${{ matrix.artifact_name }}
+          asset_content_type: application/octet-stream
+
+      - name: Upload artifact for debugging
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ./${{ matrix.artifact_name }}
+          if-no-files-found: error
+
+  update-release:
+    needs: [release-please, build-and-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update release body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          gh release edit $TAG_NAME --notes "$(cat CHANGELOG.md)"

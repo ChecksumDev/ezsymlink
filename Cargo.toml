@@ -1,0 +1,37 @@
+[package]
+name = "ezsymlink"
+version = "0.0.0"
+edition = "2021"
+authors = ["Elizabeth (Checksum) <me@checksum.space>"]
+description = "ezsymlink is a GUI tool for easy management of symbolic links"
+license = "GPL-3.0"
+readme = "README.md"
+homepage = "https://github.com/ChecksumDev/ezsymlink"
+repository = "https://github.com/ChecksumDev/ezsymlink"
+keywords = ["symlink", "gui", "filesystem", "utility"]
+categories = ["gui", "filesystem"]
+
+[dependencies]
+eframe = { version = "0.28.1", features = ["wgpu"] }
+egui = "0.28.1"
+rfd = "0.14.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[package.metadata.bundle]
+identifier = "space.checksum.ezsymlink"
+category = "public.app-category.utilities"
+short_description = "GUI tool for managing symbolic links"
+long_description = """
+EZSymlink is a user-friendly graphical tool designed to simplify the creation
+and management of symbolic links on your system. With an intuitive interface,
+it allows users to easily create, modify, and delete symlinks without needing
+to use command-line instructions.
+"""
+
+[badges]
+maintenance = { status = "actively-developed" }
