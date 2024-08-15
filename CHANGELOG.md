@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0 (2024-08-15)
+
+
+### Features
+
+* init ([0c0f271](https://github.com/ChecksumDev/ezsymlink/commit/0c0f2717873b6c2238ce264135efc98951349112))
+
 ## [0.1.2](https://github.com/ChecksumDev/ezsymlink/compare/v0.1.1...v0.1.2) (2024-08-15)
 
 
