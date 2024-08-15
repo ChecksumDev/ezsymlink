@@ -45,7 +45,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       id-token: write
-      contents: read
+      contents: write
       attestations: write
     steps:
       - uses: actions/checkout@v3
@@ -82,14 +82,12 @@ jobs:
           subject-path: ./${{ matrix.artifact_name }}
 
       - name: Upload release asset
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.release-please.outputs.upload_url }}
-          asset_path: ./${{ matrix.artifact_name }}
-          asset_name: ${{ matrix.artifact_name }}
-          asset_content_type: application/octet-stream
+          files: ./${{ matrix.artifact_name }}
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
 
       - name: Upload artifact for debugging
         uses: actions/upload-artifact@v3
@@ -97,15 +95,3 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: ./${{ matrix.artifact_name }}
           if-no-files-found: error
-
-  update-release:
-    needs: [release-please, build-and-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Update release body
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
-        run: |
-          gh release edit $TAG_NAME --notes "$(cat CHANGELOG.md)"
