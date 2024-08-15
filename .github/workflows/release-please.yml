@@ -1,0 +1,97 @@
+name: Release Please and Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          release-type: rust
+          package-name: ezsymlink
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+
+  build-and-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: ezsymlink-x86_64-linux
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: ezsymlink-x86_64-macos
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: ezsymlink-x86_64-windows.exe
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev
+
+      - name: Build release
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      - name: Rename binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: mv target/${{ matrix.target }}/release/ezsymlink ${{ matrix.artifact_name }}
+
+      - name: Rename binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: move target\${{ matrix.target }}\release\ezsymlink.exe ${{ matrix.artifact_name }}
+
+      - name: Attest
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ./${{ matrix.artifact_name }}
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ./${{ matrix.artifact_name }}
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Upload artifact for debugging
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ./${{ matrix.artifact_name }}
+          if-no-files-found: error
