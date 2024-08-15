@@ -1179,7 +1179,7 @@ dependencies = [
 
 [[package]]
 name = "ezsymlink"
-version = "0.1.2"
+version = "0.1.0"
 dependencies = [
  "eframe",
  "egui",
