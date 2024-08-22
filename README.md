@@ -13,6 +13,12 @@
 
 Get the latest release from the [releases page](https://github.com/checksumdev/ezsymlink/releases) for your platform and install it.
 
-## Star the project
+## Star History
 
-[![Stargazers over time](https://starchart.cc/checksumdev/ezsymlink.svg?variant=adaptive)](https://starchart.cc/checksumdev/ezsymlink)
+<a href="https://star-history.com/#checksumdev/ezsymlink&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=checksumdev/ezsymlink&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=checksumdev/ezsymlink&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=checksumdev/ezsymlink&type=Date" />
+ </picture>
+</a>
